@@ -18,116 +18,88 @@
     <header class="p-6 pb-2">
         <div class="flex justify-between items-center">
             <div>
-                <h1 class="text-2xl font-black text-slate-900 tracking-tight">SkyAI</h1>
+                <h1 class="text-2xl font-black text-slate-900">SkyAI</h1>
                 <p class="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Flight Hunter Pro</p>
             </div>
             <div class="w-10 h-10 bg-white rounded-2xl shadow-sm flex items-center justify-center border border-slate-100">
-                <i class="fa-solid fa-user-astronaut text-slate-400"></i>
+                <i class="fa-solid fa-plane-departure text-slate-400"></i>
             </div>
         </div>
     </header>
 
     <main class="p-6">
-        <div class="bg-white rounded-[32px] p-6 shadow-xl shadow-slate-200/50 border border-slate-100">
+        <div class="bg-white rounded-[32px] p-6 shadow-xl border border-slate-100">
             <div class="space-y-4">
                 <div class="grid grid-cols-2 gap-4">
                     <div class="space-y-1">
                         <label class="text-[10px] font-bold text-slate-400 ml-2 uppercase">From</label>
-                        <input type="text" id="origin" placeholder="TPE" class="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold focus:ring-2 focus:ring-blue-500 transition uppercase">
+                        <input type="text" id="origin" placeholder="TPE" class="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold uppercase">
                     </div>
                     <div class="space-y-1">
                         <label class="text-[10px] font-bold text-slate-400 ml-2 uppercase">To</label>
-                        <input type="text" id="destination" placeholder="NRT" class="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold focus:ring-2 focus:ring-blue-500 transition uppercase">
+                        <input type="text" id="destination" placeholder="NRT" class="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold uppercase">
                     </div>
                 </div>
-
                 <div class="space-y-1">
-                    <label class="text-[10px] font-bold text-slate-400 ml-2 uppercase">Departure Date</label>
-                    <input type="date" id="date-out" class="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold focus:ring-2 focus:ring-blue-500 transition">
+                    <label class="text-[10px] font-bold text-slate-400 ml-2 uppercase">Date</label>
+                    <input type="date" id="date-out" class="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold">
                 </div>
-
-                <div class="flex items-center justify-between px-2 pt-2">
-                    <span class="text-xs font-medium text-slate-500">僅限直飛</span>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="direct-flight" class="sr-only peer">
-                        <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                    </label>
-                </div>
-
-                <button onclick="startSearch()" class="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl shadow-lg shadow-slate-900/20 active:scale-[0.98] transition-all mt-4 flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-magnifying-glass text-xs"></i>
-                    <span>搜尋 AI 最佳航班</span>
+                <button onclick="startSearch()" class="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-all mt-4">
+                    搜尋 AI 最佳航班
                 </button>
             </div>
         </div>
 
         <div id="loading-state" class="hidden flex-col items-center py-12 space-y-4">
             <div class="w-10 h-10 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin"></div>
-            <p id="loading-text" class="text-xs font-medium text-slate-400">正在分析全球航班...</p>
+            <p id="loading-text" class="text-xs font-medium text-slate-400">連線中...</p>
         </div>
 
         <section id="results-section" class="hidden mt-8">
-            <div class="flex justify-between items-center mb-4 px-2">
-                <h2 class="text-sm font-black text-slate-900 uppercase tracking-tight">AI 分析結果</h2>
-                <span class="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-md">即時更新</span>
-            </div>
-            <div id="flight-results" class="space-y-4">
-                </div>
+            <h2 class="text-sm font-black text-slate-900 mb-4 px-2 uppercase">AI 分析結果</h2>
+            <div id="flight-results" class="space-y-4"></div>
         </section>
 
         <section id="history-section" class="mt-8">
             <div class="flex justify-between items-center mb-4 px-2">
-                <h2 class="text-sm font-black text-slate-900 uppercase tracking-tight">搜尋歷史</h2>
-                <button onclick="clearHistory()" class="text-[10px] font-bold text-slate-400 hover:text-red-400 transition">清空全部</button>
+                <h2 class="text-sm font-black text-slate-900 uppercase">搜尋歷史</h2>
+                <button onclick="clearHistory()" class="text-[10px] font-bold text-slate-400">清空</button>
             </div>
-            <div id="history-list" class="flex gap-4 overflow-x-auto no-scrollbar pb-4">
-                </div>
+            <div id="history-list" class="flex gap-4 overflow-x-auto no-scrollbar pb-4"></div>
         </section>
     </main>
 
-    <nav class="fixed bottom-0 w-full glass-effect border-t border-slate-100 px-8 py-4 flex justify-between items-center z-50">
-        <button class="text-blue-600"><i class="fa-solid fa-house-chimney text-xl"></i></button>
-        <button class="text-slate-300" onclick="showHistoryOnly()"><i class="fa-solid fa-clock-rotate-left text-xl"></i></button>
-        <button class="text-slate-300"><i class="fa-solid fa-bell text-xl"></i></button>
-        <button class="text-slate-300"><i class="fa-solid fa-gear text-xl"></i></button>
-    </nav>
-
     <script>
+        // 頁面初始化
         window.onload = function() {
-            // 設定預設日期為今天
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('date-out').value = today;
             loadHistory();
         };
 
         async function startSearch() {
-            // 1. 取得並修正變數 (避免 ReferenceError)
+            // 【修正重點】: 明確定義所有變數
             const originVal = document.getElementById('origin').value.toUpperCase() || 'TPE';
             const destinationVal = document.getElementById('destination').value.toUpperCase() || 'NRT';
             const dateOut = document.getElementById('date-out').value;
-            const isDirect = document.getElementById('direct-flight').checked;
 
-            // 2. UI 狀態切換
+            // UI 切換
             document.getElementById('history-section').classList.add('hidden');
             document.getElementById('results-section').classList.add('hidden');
             const loader = document.getElementById('loading-state');
-            const loadingText = document.getElementById('loading-text');
             loader.classList.remove('hidden');
             loader.classList.add('flex');
 
             try {
-                // 替換成你的 GAS URL
-                const GAS_URL = 'https://script.google.com/macros/s/AKfycbzQvk1KY0sjvWR6p_Jjr0bYBE0GfCiwwjm11VISP0_1zQOE8xNh9yVLAvORFKQe-VZf5w/exec'; 
-
-                loadingText.innerText = "正在連線 SerpApi 並進行 AI 分析...";
+                // 請確保更換為正確的 GAS URL
+                const GAS_URL = 'https://script.google.com/macros/s/AKfycbyOc_d682TOLRZAstww3knZ9YhKX_H4UOCni4Bga-ssjNPIVvtAoRG70GQ7PWE4QeWz9Q/exec'; 
 
                 const response = await fetch(GAS_URL, {
                     method: 'POST',
                     body: JSON.stringify({
                         origin: originVal,
-                        dest: destinationVal,
-                        dateOut: dateOut,
-                        isDirect: isDirect
+                        dest: destinationVal, // 這裡傳給後端
+                        dateOut: dateOut
                     })
                 });
 
@@ -136,13 +108,14 @@
                 if (result.status === "success") {
                     loader.classList.add('hidden');
                     renderFlights(result.flights);
+                    // 【修正重點】: 傳入正確定義的變數名 destinationVal
                     saveToHistory(originVal, destinationVal);
                 } else {
-                    throw new Error(result.message || "未知錯誤");
+                    throw new Error(result.message || "後端回傳錯誤");
                 }
 
             } catch (error) {
-                console.error(error);
+                console.error("Search Error:", error);
                 alert("搜尋失敗：" + error.message);
                 loader.classList.add('hidden');
                 document.getElementById('history-section').classList.remove('hidden');
@@ -155,48 +128,39 @@
             document.getElementById('results-section').classList.remove('hidden');
 
             if (!flights || flights.length === 0) {
-                container.innerHTML = '<p class="text-center text-slate-400 py-10 text-xs font-medium">目前的條件下找不到航班資料</p>';
+                container.innerHTML = '<p class="text-center text-slate-400 py-10">找不到航班</p>';
                 return;
             }
 
             flights.forEach(f => {
-                const card = `
-                    <div class="bg-white p-5 rounded-[28px] shadow-sm border border-slate-100 transition active:scale-95">
+                container.innerHTML += `
+                    <div class="bg-white p-5 rounded-[28px] shadow-sm border border-slate-100">
                         <div class="flex justify-between items-start mb-4">
                             <div>
-                                <span class="text-[10px] font-bold tracking-widest text-slate-400 uppercase">AI 評分 ${f.score || '--'}/10</span>
+                                <span class="text-[10px] font-bold text-slate-400">評分 ${f.score}/10</span>
                                 <h3 class="text-lg font-black text-slate-900">${f.airline}</h3>
                             </div>
-                            ${f.tag ? `<span class="bg-blue-50 text-blue-600 text-[10px] px-3 py-1 rounded-full font-black">${f.tag}</span>` : ''}
+                            <span class="bg-blue-50 text-blue-600 text-[10px] px-3 py-1 rounded-full font-black">${f.tag || '推薦'}</span>
                         </div>
                         <div class="flex justify-between items-end">
-                            <div>
-                                <p class="text-xl font-bold text-slate-900 leading-none">${f.time}</p>
-                                <p class="text-[10px] font-medium text-slate-400 mt-2"><i class="fa-solid fa-clock mr-1"></i> ${f.duration}</p>
-                            </div>
-                            <div class="text-right">
-                                <p class="text-2xl font-black text-slate-900 tracking-tighter">${f.price}</p>
-                                <p class="text-[10px] font-bold text-blue-600 mt-1 uppercase tracking-wider">立即訂購 <i class="fa-solid fa-arrow-right ml-1"></i></p>
-                            </div>
+                            <p class="text-xl font-bold">${f.time}</p>
+                            <p class="text-2xl font-black text-slate-900">${f.price}</p>
                         </div>
                     </div>
                 `;
-                container.innerHTML += card;
             });
         }
 
-        function saveToHistory(origin, dest) {
+        // 【修正重點】: 確保這裡接收的參數與呼叫處一致
+        function saveToHistory(inputOrigin, inputDest) {
             let history = JSON.parse(localStorage.getItem('skyai_history') || '[]');
-            const route = `${origin} - ${dest}`;
+            const route = `${inputOrigin} - ${inputDest}`;
             
-            // 移除重複
             history = history.filter(h => h.route !== route);
-            
-            // 加入新紀錄
             history.unshift({
                 route: route,
-                price: 'TWD ' + (Math.floor(Math.random() * 5000) + 7000).toLocaleString(),
-                trend: Math.random() > 0.5 ? 'up' : 'down'
+                price: 'TWD ---',
+                trend: 'stable'
             });
 
             if(history.length > 5) history.pop();
@@ -209,39 +173,28 @@
             const container = document.getElementById('history-list');
             
             if (history.length === 0) {
-                container.innerHTML = '<p class="text-[10px] font-medium text-slate-400 px-2 italic">尚無搜尋紀錄</p>';
+                container.innerHTML = '<p class="text-xs text-slate-400">無紀錄</p>';
                 return;
             }
 
             container.innerHTML = history.map(h => `
-                <div class="bg-white border border-slate-100 rounded-2xl p-4 flex-shrink-0 w-36 shadow-sm active:scale-95 transition" onclick="quickSearch('${h.route}')">
-                    <p class="text-xs font-black text-slate-900 mb-1">${h.route}</p>
-                    <p class="text-[10px] font-bold ${h.trend === 'up' ? 'text-rose-500' : 'text-emerald-500'} mb-2">
-                        <i class="fa-solid fa-chart-line mr-1"></i>${h.trend === 'up' ? '價格看漲' : '價格穩定'}
-                    </p>
-                    <p class="text-xs font-black text-slate-400">${h.price}</p>
+                <div class="bg-white border border-slate-100 rounded-2xl p-4 flex-shrink-0 w-32 shadow-sm" onclick="quickSearch('${h.route}')">
+                    <p class="text-xs font-black">${h.route}</p>
+                    <p class="text-[10px] text-slate-400 mt-2">點擊快速搜尋</p>
                 </div>
             `).join('');
         }
 
         function quickSearch(route) {
-            const [o, d] = route.split(' - ');
-            document.getElementById('origin').value = o;
-            document.getElementById('destination').value = d;
+            const parts = route.split(' - ');
+            document.getElementById('origin').value = parts[0];
+            document.getElementById('destination').value = parts[1];
             startSearch();
         }
 
         function clearHistory() {
-            if(confirm('確定要清空所有搜尋紀錄嗎？')) {
-                localStorage.removeItem('skyai_history');
-                loadHistory();
-            }
-        }
-
-        function showHistoryOnly() {
-            document.getElementById('results-section').classList.add('hidden');
-            document.getElementById('history-section').classList.remove('hidden');
-            window.scrollTo({top: 0, behavior: 'smooth'});
+            localStorage.removeItem('skyai_history');
+            loadHistory();
         }
     </script>
 </body>
