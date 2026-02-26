@@ -10,67 +10,58 @@
     <style>
         body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .glass-effect { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen pb-20">
 
-    <header class="p-6 pb-2">
-        <div class="flex justify-between items-center">
-            <div>
-                <h1 class="text-2xl font-black text-slate-900">SkyAI</h1>
-                <p class="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Flight Hunter Pro</p>
-            </div>
-            <div class="w-10 h-10 bg-white rounded-2xl shadow-sm flex items-center justify-center border border-slate-100">
-                <i class="fa-solid fa-plane-departure text-slate-400"></i>
-            </div>
-        </div>
+    <header class="p-6">
+        <h1 class="text-2xl font-black text-slate-900">SkyAI</h1>
+        <p class="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Flight Hunter</p>
     </header>
 
     <main class="p-6">
-        <div class="bg-white rounded-[32px] p-6 shadow-xl border border-slate-100">
+        <div class="bg-white rounded-[32px] p-6 shadow-xl border border-slate-100 mb-8">
             <div class="space-y-4">
                 <div class="grid grid-cols-2 gap-4">
                     <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-slate-400 ml-2 uppercase">From</label>
-                        <input type="text" id="origin" placeholder="TPE" class="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold uppercase">
+                        <label class="text-[10px] font-bold text-slate-400 ml-2">FROM</label>
+                        <input type="text" id="origin" placeholder="TPE" class="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold uppercase focus:ring-2 focus:ring-blue-500">
                     </div>
                     <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-slate-400 ml-2 uppercase">To</label>
-                        <input type="text" id="destination" placeholder="NRT" class="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold uppercase">
+                        <label class="text-[10px] font-bold text-slate-400 ml-2">TO</label>
+                        <input type="text" id="destination" placeholder="NRT" class="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold uppercase focus:ring-2 focus:ring-blue-500">
                     </div>
                 </div>
                 <div class="space-y-1">
-                    <label class="text-[10px] font-bold text-slate-400 ml-2 uppercase">Date</label>
+                    <label class="text-[10px] font-bold text-slate-400 ml-2">DATE</label>
                     <input type="date" id="date-out" class="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold">
                 </div>
-                <button onclick="startSearch()" class="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-all mt-4">
+                <button onclick="startSearch()" class="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-all">
                     搜尋 AI 最佳航班
                 </button>
             </div>
         </div>
 
-        <div id="loading-state" class="hidden flex-col items-center py-12 space-y-4">
-            <div class="w-10 h-10 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin"></div>
-            <p id="loading-text" class="text-xs font-medium text-slate-400">連線中...</p>
+        <div id="loading-state" class="hidden flex-col items-center py-12">
+            <div class="w-8 h-8 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
+            <p id="loading-text" class="text-xs font-medium text-slate-400">正在處理...</p>
         </div>
 
-        <section id="results-section" class="hidden mt-8">
+        <section id="results-section" class="hidden">
             <h2 class="text-sm font-black text-slate-900 mb-4 px-2 uppercase">AI 分析結果</h2>
             <div id="flight-results" class="space-y-4"></div>
         </section>
 
         <section id="history-section" class="mt-8">
             <div class="flex justify-between items-center mb-4 px-2">
-                <h2 class="text-sm font-black text-slate-900 uppercase">搜尋歷史</h2>
-                <button onclick="clearHistory()" class="text-[10px] font-bold text-slate-400">清空</button>
+                <h2 class="text-sm font-black text-slate-900 uppercase">最近搜尋</h2>
+                <button onclick="clearHistory()" class="text-[10px] font-bold text-slate-400 hover:text-red-500">清空</button>
             </div>
             <div id="history-list" class="flex gap-4 overflow-x-auto no-scrollbar pb-4"></div>
         </section>
     </main>
 
     <script>
-        // 頁面初始化
         window.onload = function() {
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('date-out').value = today;
@@ -78,12 +69,16 @@
         };
 
         async function startSearch() {
-            // 【修正重點】: 明確定義所有變數
-            const originVal = document.getElementById('origin').value.toUpperCase() || 'TPE';
-            const destinationVal = document.getElementById('destination').value.toUpperCase() || 'NRT';
-            const dateOut = document.getElementById('date-out').value;
+            // 1. 取得畫面上最新的輸入值，並確實定義變數
+            const originEl = document.getElementById('origin');
+            const destEl = document.getElementById('destination');
+            const dateEl = document.getElementById('date-out');
 
-            // UI 切換
+            const originVal = originEl.value.toUpperCase() || 'TPE';
+            const destVal = destEl.value.toUpperCase() || 'NRT';
+            const dateVal = dateEl.value;
+
+            // 2. UI 切換
             document.getElementById('history-section').classList.add('hidden');
             document.getElementById('results-section').classList.add('hidden');
             const loader = document.getElementById('loading-state');
@@ -91,15 +86,15 @@
             loader.classList.add('flex');
 
             try {
-                // 請確保更換為正確的 GAS URL
+                // *** 請將下方 URL 替換成你的 GAS 網址 ***
                 const GAS_URL = 'https://script.google.com/macros/s/AKfycbyOc_d682TOLRZAstww3knZ9YhKX_H4UOCni4Bga-ssjNPIVvtAoRG70GQ7PWE4QeWz9Q/exec'; 
 
                 const response = await fetch(GAS_URL, {
                     method: 'POST',
                     body: JSON.stringify({
                         origin: originVal,
-                        dest: destinationVal, // 這裡傳給後端
-                        dateOut: dateOut
+                        dest: destVal,
+                        dateOut: dateVal
                     })
                 });
 
@@ -108,14 +103,14 @@
                 if (result.status === "success") {
                     loader.classList.add('hidden');
                     renderFlights(result.flights);
-                    // 【修正重點】: 傳入正確定義的變數名 destinationVal
-                    saveToHistory(originVal, destinationVal);
+                    // 執行儲存
+                    saveToHistory(); 
                 } else {
-                    throw new Error(result.message || "後端回傳錯誤");
+                    throw new Error(result.message || "回傳資料異常");
                 }
 
             } catch (error) {
-                console.error("Search Error:", error);
+                console.error(error);
                 alert("搜尋失敗：" + error.message);
                 loader.classList.add('hidden');
                 document.getElementById('history-section').classList.remove('hidden');
@@ -128,42 +123,52 @@
             document.getElementById('results-section').classList.remove('hidden');
 
             if (!flights || flights.length === 0) {
-                container.innerHTML = '<p class="text-center text-slate-400 py-10">找不到航班</p>';
+                container.innerHTML = '<p class="text-center text-slate-400 py-10 text-xs">目前沒有符合的航班</p>';
                 return;
             }
 
             flights.forEach(f => {
                 container.innerHTML += `
-                    <div class="bg-white p-5 rounded-[28px] shadow-sm border border-slate-100">
+                    <div class="bg-white p-5 rounded-[28px] shadow-sm border border-slate-100 transition active:scale-95">
                         <div class="flex justify-between items-start mb-4">
                             <div>
-                                <span class="text-[10px] font-bold text-slate-400">評分 ${f.score}/10</span>
+                                <span class="text-[10px] font-bold text-slate-400">AI 評分 ${f.score || 8}/10</span>
                                 <h3 class="text-lg font-black text-slate-900">${f.airline}</h3>
                             </div>
                             <span class="bg-blue-50 text-blue-600 text-[10px] px-3 py-1 rounded-full font-black">${f.tag || '推薦'}</span>
                         </div>
                         <div class="flex justify-between items-end">
-                            <p class="text-xl font-bold">${f.time}</p>
-                            <p class="text-2xl font-black text-slate-900">${f.price}</p>
+                            <p class="text-xl font-bold text-slate-900 leading-none">${f.time}</p>
+                            <div class="text-right">
+                                <p class="text-2xl font-black text-slate-900 tracking-tighter">${f.price}</p>
+                            </div>
                         </div>
                     </div>
                 `;
             });
         }
 
-        // 【修正重點】: 確保這裡接收的參數與呼叫處一致
-        function saveToHistory(inputOrigin, inputDest) {
-            let history = JSON.parse(localStorage.getItem('skyai_history') || '[]');
-            const route = `${inputOrigin} - ${inputDest}`;
+        // 核心修正：不依賴外部傳參，直接從 DOM 抓取，徹底避免 ReferenceError
+        function saveToHistory() {
+            const o = document.getElementById('origin').value.toUpperCase() || 'TPE';
+            const d = document.getElementById('destination').value.toUpperCase() || 'NRT';
+            const route = `${o} - ${d}`;
             
-            history = history.filter(h => h.route !== route);
+            let history = JSON.parse(localStorage.getItem('skyai_history') || '[]');
+            
+            // 過濾掉重複路徑
+            history = history.filter(item => item.route !== route);
+            
+            // 新增至最前
             history.unshift({
                 route: route,
                 price: 'TWD ---',
-                trend: 'stable'
+                time: new Date().toLocaleDateString()
             });
 
+            // 最多存 5 筆
             if(history.length > 5) history.pop();
+            
             localStorage.setItem('skyai_history', JSON.stringify(history));
             loadHistory();
         }
@@ -173,28 +178,32 @@
             const container = document.getElementById('history-list');
             
             if (history.length === 0) {
-                container.innerHTML = '<p class="text-xs text-slate-400">無紀錄</p>';
+                container.innerHTML = '<p class="text-[10px] text-slate-400 px-2">尚無歷史紀錄</p>';
                 return;
             }
 
             container.innerHTML = history.map(h => `
-                <div class="bg-white border border-slate-100 rounded-2xl p-4 flex-shrink-0 w-32 shadow-sm" onclick="quickSearch('${h.route}')">
-                    <p class="text-xs font-black">${h.route}</p>
-                    <p class="text-[10px] text-slate-400 mt-2">點擊快速搜尋</p>
+                <div class="bg-white border border-slate-100 rounded-2xl p-4 flex-shrink-0 w-32 shadow-sm active:bg-slate-50 transition" onclick="quickSearch('${h.route}')">
+                    <p class="text-xs font-black text-slate-900">${h.route}</p>
+                    <p class="text-[9px] text-slate-400 mt-2">點擊自動搜尋</p>
                 </div>
             `).join('');
         }
 
         function quickSearch(route) {
             const parts = route.split(' - ');
-            document.getElementById('origin').value = parts[0];
-            document.getElementById('destination').value = parts[1];
-            startSearch();
+            if(parts.length === 2) {
+                document.getElementById('origin').value = parts[0];
+                document.getElementById('destination').value = parts[1];
+                startSearch();
+            }
         }
 
         function clearHistory() {
-            localStorage.removeItem('skyai_history');
-            loadHistory();
+            if(confirm('確定要清空歷史紀錄？')) {
+                localStorage.removeItem('skyai_history');
+                loadHistory();
+            }
         }
     </script>
 </body>
