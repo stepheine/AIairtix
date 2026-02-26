@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SkyAI - 智能機票獵人</title>
+    <!-- 使用 Tailwind CSS 作為極簡冷色調 UI 框架 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 使用 FontAwesome 提供高質感圖示 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- 引入 Google Fonts (Inter) 提升現代感 -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        slate: { 50: '#f8fafc', 100: '#f1f5f9', 200: '#e2e8f0', 300: '#cbd5e1', 400: '#94a3b8', 500: '#64748b', 600: '#475569', 700: '#334155', 800: '#1e293b', 900: '#0f172a' },
+                        primary: '#0ea5e9', // 冷色調主色 (Sky Blue)
+                        primaryDark: '#0284c7',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #f1f5f9;
+            -webkit-tap-highlight-color: transparent;
+        }
+        /* 隱藏滾動條但保留滾動功能 */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* App 容器模擬手機版型 */
+        #app-container {
+            max-width: 480px;
+            margin: 0 auto;
+            background-color: #f8fafc;
+            min-height: 100vh;
+            position: relative;
+            box-shadow: 0 0 20px rgba(0,0,0,0.05);
+            padding-bottom: 80px; /* 為底部導覽列留空間 */
+        }
+
+        /* 簡約輸入框重置 */
+        input[type="text"], input[type="date"] {
+            outline: none;
+            background: transparent;
+        }
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            opacity: 0.5;
+            cursor: pointer;
+        }
+
+        /* Toggle Switch 樣式 */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #0ea5e9;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #0ea5e9;
+        }
+
+        /* 載入動畫 */
+        .loader {
+            border: 3px solid #e2e8f0;
+            border-radius: 50%;
+            border-top: 3px solid #0ea5e9;
+            width: 24px;
+            height: 24px;
+            -webkit-animation: spin 1s linear infinite;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="text-slate-800 antialiased selection:bg-primary selection:text-white">
+
+    <div id="app-container">
+        <!-- Header -->
+        <header class="pt-12 pb-6 px-6 bg-white sticky top-0 z-20 border-b border-slate-100">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-2xl font-bold tracking-tight text-slate-900">Sky<span class="text-primary">AI</span></h1>
+                    <p class="text-xs text-slate-400 mt-1">AI 驅動的低價機票雷達</p>
+                </div>
+                <button onclick="toggleNotification()" class="relative p-2 rounded-full hover:bg-slate-50 transition" id="notify-btn">
+                    <i class="fa-regular fa-bell text-xl text-slate-600"></i>
+                    <span class="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full"></span>
+                </button>
+            </div>
+        </header>
+
+        <main class="px-6 py-6">
+            <!-- 搜尋卡片 -->
+            <div class="bg-white rounded-3xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 mb-8">
+                
+                <!-- 行程類型 Tabs -->
+                <div class="flex bg-slate-100 p-1 rounded-xl mb-6">
+                    <button class="flex-1 py-2 text-sm font-medium rounded-lg bg-white text-slate-900 shadow-sm transition" id="tab-round" onclick="setTripType('round')">來回</button>
+                    <button class="flex-1 py-2 text-sm font-medium rounded-lg text-slate-500 hover:text-slate-700 transition" id="tab-one" onclick="setTripType('one')">單程</button>
+                    <button class="flex-1 py-2 text-sm font-medium rounded-lg text-slate-500 hover:text-slate-700 transition" id="tab-multi" onclick="setTripType('multi')">多城市</button>
+                </div>
+
+                <!-- 搜尋表單 -->
+                <div class="space-y-4 relative">
+                    <!-- 出發地與目的地 -->
+                    <div class="relative flex flex-col gap-3">
+                        <div class="flex items-center bg-slate-50 border border-slate-200 rounded-2xl p-3 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition">
+                            <i class="fa-solid fa-plane-departure text-slate-400 w-6 text-center"></i>
+                            <input type="text" id="origin" placeholder="出發地 (例: TPE)" value="台北 (TPE)" class="w-full ml-3 text-slate-700 font-medium placeholder-slate-400">
+                        </div>
+                        
+                        <!-- 交換按鈕 -->
+                        <button class="absolute top-1/2 left-[20px] -translate-y-1/2 w-8 h-8 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-400 shadow-sm z-10 hover:text-primary transition" onclick="swapLocations()">
+                            <i class="fa-solid fa-arrow-right-arrow-left rotate-90 text-xs"></i>
+                        </button>
+
+                        <div class="flex items-center bg-slate-50 border border-slate-200 rounded-2xl p-3 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition">
+                            <i class="fa-solid fa-plane-arrival text-slate-400 w-6 text-center"></i>
+                            <input type="text" id="destination" placeholder="目的地 (例: NRT)" value="東京 (NRT)" class="w-full ml-3 text-slate-700 font-medium placeholder-slate-400">
+                        </div>
+                    </div>
+
+                    <!-- 日期選擇 -->
+                    <div class="flex gap-3">
+                        <div class="flex-1 flex items-center bg-slate-50 border border-slate-200 rounded-2xl p-3 focus-within:border-primary transition">
+                            <i class="fa-regular fa-calendar text-slate-400"></i>
+                            <input type="date" id="date-out" class="w-full ml-2 text-sm text-slate-700 font-medium">
+                        </div>
+                        <div class="flex-1 flex items-center bg-slate-50 border border-slate-200 rounded-2xl p-3 focus-within:border-primary transition" id="date-return-container">
+                            <input type="date" id="date-return" class="w-full ml-2 text-sm text-slate-700 font-medium">
+                        </div>
+                    </div>
+
+                    <!-- 直飛選項 -->
+                    <div class="flex items-center justify-between pt-2">
+                        <span class="text-sm text-slate-600 font-medium">僅限直飛航班</span>
+                        <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                            <input type="checkbox" name="toggle" id="direct-flight" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 border-slate-200 appearance-none cursor-pointer transition-all duration-300 z-10 top-0 left-0"/>
+                            <label for="direct-flight" class="toggle-label block overflow-hidden h-5 rounded-full bg-slate-200 cursor-pointer transition-colors duration-300"></label>
+                        </div>
+                    </div>
+
+                    <!-- 搜尋按鈕 -->
+                    <button onclick="startSearch()" class="w-full bg-slate-900 text-white font-medium py-4 rounded-2xl mt-4 hover:bg-slate-800 active:scale-[0.98] transition-all flex justify-center items-center gap-2 shadow-lg shadow-slate-900/20">
+                        <i class="fa-solid fa-magnifying-glass text-sm"></i>
+                        AI 智能搜尋最低價
+                    </button>
+                </div>
+            </div>
+
+            <!-- 狀態提示區 (隱藏) -->
+            <div id="loading-state" class="hidden flex-col items-center justify-center py-8">
+                <div class="loader mb-4"></div>
+                <p class="text-sm text-slate-500 font-medium" id="loading-text">GAS 腳本啟動中，分析歷史票價...</p>
+            </div>
+
+            <!-- 搜尋結果區 (隱藏) -->
+            <div id="results-section" class="hidden space-y-4 mb-8">
+                <div class="flex justify-between items-end mb-4">
+                    <h2 class="text-lg font-bold text-slate-800">最佳推薦組合</h2>
+                    <span class="text-xs text-primary font-medium bg-primary/10 px-2 py-1 rounded-md"><i class="fa-solid fa-sparkles mr-1"></i>AI 判定：現在買最省</span>
+                </div>
+                
+                <div id="flights-container" class="space-y-4">
+                    <!-- JS 生成機票卡片 -->
+                </div>
+            </div>
+
+            <!-- 歷史查價紀錄 -->
+            <div id="history-section">
+                <div class="flex justify-between items-end mb-4">
+                    <h2 class="text-lg font-bold text-slate-800">近期查價歷程</h2>
+                    <button class="text-xs text-slate-400 hover:text-slate-600" onclick="clearHistory()">清除</button>
+                </div>
+                <!-- 橫向滾動容器 -->
+                <div class="flex gap-4 overflow-x-auto no-scrollbar pb-4" id="history-container">
+                    <!-- JS 生成歷史卡片 -->
+                </div>
+            </div>
+
+        </main>
+
+        <!-- 底部推播提示 Toast (隱藏) -->
+        <div id="toast-notification" class="fixed bottom-24 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-5 py-3 rounded-full shadow-xl flex items-center gap-3 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none z-50 w-[90%] max-w-[400px]">
+            <i class="fa-solid fa-circle-check text-green-400"></i>
+            <span class="text-sm font-medium flex-1">已開啟新低價推播通知！</span>
+        </div>
+
+        <!-- 底部導覽列 -->
+        <nav class="fixed bottom-0 w-full max-w-[480px] bg-white border-t border-slate-100 px-6 py-4 z-30 flex justify-between items-center text-slate-400">
+            <button class="flex flex-col items-center gap-1 text-primary w-16">
+                <i class="fa-solid fa-house text-lg"></i>
+                <span class="text-[10px] font-medium">首頁</span>
+            </button>
+            <button class="flex flex-col items-center gap-1 hover:text-slate-600 transition w-16" onclick="showHistoryOnly()">
+                <i class="fa-solid fa-clock-rotate-left text-lg"></i>
+                <span class="text-[10px] font-medium">歷程</span>
+            </button>
+            <button class="flex flex-col items-center gap-1 hover:text-slate-600 transition w-16">
+                <i class="fa-regular fa-heart text-lg"></i>
+                <span class="text-[10px] font-medium">追蹤</span>
+            </button>
+            <button class="flex flex-col items-center gap-1 hover:text-slate-600 transition w-16">
+                <i class="fa-regular fa-user text-lg"></i>
+                <span class="text-[10px] font-medium">我的</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- JavaScript 邏輯 -->
+    <script>
+        // 狀態變數
+        let currentTripType = 'round';
+        let notificationsEnabled = false;
+
+        // 初始化日期 (今天及一週後)
+        window.onload = () => {
+            const today = new Date();
+            const nextWeek = new Date(today);
+            nextWeek.setDate(today.getDate() + 7);
+            
+            document.getElementById('date-out').value = today.toISOString().split('T')[0];
+            document.getElementById('date-return').value = nextWeek.toISOString().split('T')[0];
+            
+            loadHistory();
+        };
+
+        // 切換行程類型
+        function setTripType(type) {
+            currentTripType = type;
+            const tabs = {
+                'round': document.getElementById('tab-round'),
+                'one': document.getElementById('tab-one'),
+                'multi': document.getElementById('tab-multi')
+            };
+
+            // 重置樣式
+            Object.values(tabs).forEach(tab => {
+                tab.className = 'flex-1 py-2 text-sm font-medium rounded-lg text-slate-500 hover:text-slate-700 transition';
+            });
+
+            // 設置選中樣式
+            tabs[type].className = 'flex-1 py-2 text-sm font-medium rounded-lg bg-white text-slate-900 shadow-sm transition';
+
+            // 處理回程日期顯示
+            const returnContainer = document.getElementById('date-return-container');
+            if (type === 'one') {
+                returnContainer.style.opacity = '0.3';
+                returnContainer.style.pointerEvents = 'none';
+            } else {
+                returnContainer.style.opacity = '1';
+                returnContainer.style.pointerEvents = 'auto';
+            }
+        }
+
+        // 交換出發地與目的地
+        function swapLocations() {
+            const origin = document.getElementById('origin');
+            const dest = document.getElementById('destination');
+            const temp = origin.value;
+            origin.value = dest.value;
+            dest.value = temp;
+            
+            // 加上小動畫效果
+            origin.classList.add('text-primary');
+            dest.classList.add('text-primary');
+            setTimeout(() => {
+                origin.classList.remove('text-primary');
+                dest.classList.remove('text-primary');
+            }, 300);
+        }
+
+        // 推播通知切換
+        function toggleNotification() {
+            notificationsEnabled = !notificationsEnabled;
+            const btn = document.getElementById('notify-btn');
+            const icon = btn.querySelector('i');
+            const dot = btn.querySelector('span');
+            
+            if (notificationsEnabled) {
+                icon.classList.remove('fa-regular');
+                icon.classList.add('fa-solid', 'text-primary');
+                dot.classList.remove('hidden');
+                showToast("已啟動 AI 新低價推播通知！");
+            } else {
+                icon.classList.add('fa-regular');
+                icon.classList.remove('fa-solid', 'text-primary');
+                dot.classList.add('hidden');
+                showToast("已關閉推播通知。");
+            }
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast-notification');
+            toast.querySelector('span').innerText = message;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        // 修改原本的 startSearch 邏輯
+async function startSearch() {
+    // ... 前段抓取 input 的 code 不變 ...
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbzOEvk9qqinoy4ZDrcWqCyBUX_BXhQbqWfapfCiFvS0zjgYwO0vJF0SYwy7uwCqaRzIzg/exec';
+
+    try {
+        const response = await fetch(GAS_URL, {
+            method: 'POST',
+            body: JSON.stringify({ origin, dest, dateOut, isDirect })
+        });
+        const result = await response.json();
+
+        if (result.status === "success") {
+            loader.classList.add('hidden');
+            renderFlights(result.flights); // 呼叫下方的渲染函數
+            saveToHistory(origin, dest);
+        }
+    } catch (e) {
+        alert("搜尋失敗：" + e);
+    }
+}
+
+function renderFlights(flights) {
+    const container = document.getElementById('flight-results');
+    container.innerHTML = ''; // 清空舊資料
+    document.getElementById('results-section').classList.remove('hidden');
+
+    flights.forEach(f => {
+        const card = `
+            <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 mb-4 transition active:scale-95">
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <span class="text-[10px] font-bold tracking-widest text-slate-400 uppercase">航班推薦 (AI 評分: ${f.score}/10)</span>
+                        <h3 class="text-lg font-bold text-slate-900">${f.airline}</h3>
+                    </div>
+                    ${f.tag ? `<span class="bg-blue-50 text-blue-600 text-[10px] px-3 py-1 rounded-full font-bold">${f.tag}</span>` : ''}
+                </div>
+                <div class="flex justify-between items-center">
+                    <div>
+                        <p class="text-xl font-bold text-slate-900">${f.time}</p>
+                        <p class="text-xs text-slate-400 mt-1">${f.duration}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-2xl font-black text-slate-900">${f.price}</p>
+                        <button class="mt-2 text-xs font-bold text-blue-600">查看詳情 <i class="fa-solid fa-chevron-right ml-1"></i></button>
+                    </div>
+                </div>
+            </div>
+        `;
+        container.innerHTML += card;
+    });
+}
+
+        // 顯示搜尋結果
+        function showResults(origin, dest, dateOut, isDirect) {
+            const section = document.getElementById('results-section');
+            const container = document.getElementById('flights-container');
+            section.classList.remove('hidden');
+
+            // 模擬資料生成
+            const flights = [
+                { airline: '星宇航空', code: 'JX800', time: '08:30 - 12:45', duration: '3h 15m', price: 'NT$ 11,250', type: isDirect ? '直飛' : '直飛', tag: '最便宜' },
+                { airline: '中華航空', code: 'CI100', time: '09:30 - 13:30', duration: '3h 0m', price: 'NT$ 12,800', type: '直飛', tag: '時間佳' },
+                { airline: '長榮航空', code: 'BR198', time: '14:20 - 18:40', duration: '3h 20m', price: 'NT$ 14,500', type: '直飛', tag: '' }
+            ];
+
+            let html = '';
+            flights.forEach((f, index) => {
+                const tagHtml = f.tag ? `<span class="absolute -top-3 left-4 bg-slate-900 text-white text-[10px] px-2 py-1 rounded-full border-2 border-white">${f.tag}</span>` : '';
+                
+                html += `
+                <div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm relative hover:border-primary transition duration-300 transform ${index === 0 ? 'ring-1 ring-primary/30' : ''}">
+                    ${tagHtml}
+                    <div class="flex justify-between items-center mb-3">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400">
+                                <i class="fa-solid fa-plane"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm font-bold text-slate-800">${f.airline}</p>
+                                <p class="text-[10px] text-slate-400">${f.code} · ${f.type}</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-lg font-bold text-slate-900">${f.price}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center justify-between mt-4 pt-4 border-t border-slate-50">
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-slate-800">${f.time}</p>
+                            <p class="text-xs text-slate-400 mt-1">${origin.substring(0,2)} <i class="fa-solid fa-arrow-right text-[8px] mx-1"></i> ${dest.substring(0,2)} (${f.duration})</p>
+                        </div>
+                        <button class="bg-primary/10 text-primary font-medium text-sm px-5 py-2 rounded-xl hover:bg-primary hover:text-white transition" onclick="bookFlight('${f.airline}')">
+                            購買
+                        </button>
+                    </div>
+                </div>`;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // 購買按鈕操作
+        function bookFlight(airline) {
+            showToast(`正在導向 ${airline} 購買頁面...`);
+        }
+
+        // === 歷史紀錄 (模擬資料庫) ===
+        function saveToHistory(origin, dest) {
+            let history = JSON.parse(localStorage.getItem('skyai_history') || '[]');
+            const price = 'NT$ ' + (Math.floor(Math.random() * 50) + 80) + '00'; // 隨機生成 8000~13000
+            
+            const newRecord = { 
+                route: `${origin.split(' ')[0]} - ${dest.split(' ')[0]}`,
+                price: price,
+                trend: Math.random() > 0.5 ? 'down' : 'up' // 模擬價格趨勢
+            };
+
+            // 去重複並加到最前面
+            history = history.filter(h => h.route !== newRecord.route);
+            history.unshift(newRecord);
+            if(history.length > 5) history.pop();
+
+            localStorage.setItem('skyai_history', JSON.stringify(history));
+            loadHistory();
+        }
+
+        function loadHistory() {
+            const container = document.getElementById('history-container');
+            let history = JSON.parse(localStorage.getItem('skyai_history') || '[]');
+            
+            if (history.length === 0) {
+                container.innerHTML = `<p class="text-sm text-slate-400 w-full text-center py-4">尚無查價紀錄</p>`;
+                return;
+            }
+
+            let html = '';
+            history.forEach(h => {
+                const trendIcon = h.trend === 'down' 
+                    ? '<i class="fa-solid fa-arrow-trend-down text-green-500"></i>' 
+                    : '<i class="fa-solid fa-arrow-trend-up text-red-500"></i>';
+                const trendText = h.trend === 'down' ? '跌至' : '近期查價';
+
+                html += `
+                <div class="min-w-[160px] bg-white border border-slate-100 rounded-2xl p-4 flex-shrink-0 shadow-sm cursor-pointer hover:border-slate-300 transition" onclick="quickSearch('${h.route}')">
+                    <div class="flex justify-between items-start mb-2">
+                        <p class="text-sm font-bold text-slate-700">${h.route}</p>
+                        <div class="w-6 h-6 rounded-full bg-slate-50 flex items-center justify-center text-[10px]">
+                            ${trendIcon}
+                        </div>
+                    </div>
+                    <p class="text-[10px] text-slate-400 mb-1">${trendText}</p>
+                    <p class="text-sm font-bold text-slate-900">${h.price}</p>
+                </div>`;
+            });
+            container.innerHTML = html;
+        }
+
+        function clearHistory() {
+            localStorage.removeItem('skyai_history');
+            loadHistory();
+        }
+
+        function quickSearch(route) {
+            const parts = route.split(' - ');
+            if(parts.length === 2) {
+                document.getElementById('origin').value = parts[0];
+                document.getElementById('destination').value = parts[1];
+                window.scrollTo({top: 0, behavior: 'smooth'});
+            }
+        }
+
+        function showHistoryOnly() {
+            document.getElementById('results-section').classList.add('hidden');
+            document.getElementById('history-section').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
