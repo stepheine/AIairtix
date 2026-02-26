@@ -10,21 +10,13 @@
     <style>
         body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .glass-effect { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen pb-20">
 
     <header class="p-6">
-        <div class="flex justify-between items-center">
-            <div>
-                <h1 class="text-2xl font-black text-slate-900 tracking-tight">SkyAI</h1>
-                <p class="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Flight Hunter Pro</p>
-            </div>
-            <div class="w-10 h-10 bg-white rounded-2xl shadow-sm flex items-center justify-center border border-slate-100">
-                <i class="fa-solid fa-plane-departure text-slate-400"></i>
-            </div>
-        </div>
+        <h1 class="text-2xl font-black text-slate-900 tracking-tight">SkyAI</h1>
+        <p class="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Flight Hunter Pro</p>
     </header>
 
     <main class="p-6">
@@ -33,197 +25,162 @@
                 <div class="grid grid-cols-2 gap-4">
                     <div class="space-y-1">
                         <label class="text-[10px] font-bold text-slate-400 ml-2 uppercase">From</label>
-                        <input type="text" id="origin" placeholder="TPE" class="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold uppercase focus:ring-2 focus:ring-blue-500">
+                        <input type="text" id="ui_input_origin" placeholder="TPE" class="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold uppercase focus:ring-2 focus:ring-blue-500">
                     </div>
                     <div class="space-y-1">
                         <label class="text-[10px] font-bold text-slate-400 ml-2 uppercase">To</label>
-                        <input type="text" id="destination" placeholder="NRT" class="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold uppercase focus:ring-2 focus:ring-blue-500">
+                        <input type="text" id="ui_input_dest" placeholder="NRT" class="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold uppercase focus:ring-2 focus:ring-blue-500">
                     </div>
                 </div>
                 <div class="space-y-1">
                     <label class="text-[10px] font-bold text-slate-400 ml-2 uppercase">Date</label>
-                    <input type="date" id="date-out" class="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold focus:ring-2 focus:ring-blue-500">
+                    <input type="date" id="ui_input_date" class="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold">
                 </div>
-                <button onclick="startSearch()" class="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-all mt-2">
+                <button onclick="executeSearch()" class="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-all mt-2">
                     搜尋 AI 最佳航班
                 </button>
             </div>
         </div>
 
-        <div id="loading-state" class="hidden flex-col items-center py-12 space-y-4">
-            <div class="w-10 h-10 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin"></div>
-            <p id="loading-text" class="text-xs font-medium text-slate-400 text-center px-10">AI 正在連線後端伺服器...</p>
+        <div id="loading-state" class="hidden flex-col items-center py-12">
+            <div class="w-10 h-10 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
+            <p class="text-xs font-medium text-slate-400">AI 分析搜尋中...</p>
         </div>
 
-        <section id="results-section" class="hidden mt-8 animate-fade-in">
-            <h2 class="text-sm font-black text-slate-900 mb-4 px-2 uppercase tracking-tighter">AI 分析結果</h2>
+        <section id="results-section" class="hidden mt-8">
+            <h2 class="text-sm font-black text-slate-900 mb-4 px-2 uppercase">AI 分析結果</h2>
             <div id="flight-results" class="space-y-4"></div>
         </section>
 
         <section id="history-section" class="mt-8">
             <div class="flex justify-between items-center mb-4 px-2">
                 <h2 class="text-sm font-black text-slate-900 uppercase">最近搜尋</h2>
-                <button onclick="clearHistory()" class="text-[10px] font-bold text-slate-400">清空紀錄</button>
+                <button onclick="clearLocalStorageHistory()" class="text-[10px] font-bold text-slate-400">清空</button>
             </div>
             <div id="history-list" class="flex gap-4 overflow-x-auto no-scrollbar pb-4"></div>
         </section>
     </main>
 
     <script>
-        // 初始化
+        // 初始化日期
         window.onload = function() {
-            const dateInput = document.getElementById('date-out');
-            if (dateInput) {
-                dateInput.value = new Date().toISOString().split('T')[0];
-            }
-            loadHistory();
+            const dateInput = document.getElementById('ui_input_date');
+            if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
+            refreshHistoryUI();
         };
 
-        // 搜尋主函數
-        async function startSearch() {
-            // 1. 立即獲取當前輸入框的值，並用 const 鎖定作用域
-            const originVal = document.getElementById('origin').value.toUpperCase();
-            const destinationVal = document.getElementById('destination').value.toUpperCase();
-            const dateVal = document.getElementById('date-out').value;
+        async function executeSearch() {
+            // 【關鍵修正】使用完全獨立的變數名，避免任何同名衝突
+            const search_origin = document.getElementById('ui_input_origin').value.toUpperCase();
+            const search_dest = document.getElementById('ui_input_dest').value.toUpperCase();
+            const search_date = document.getElementById('ui_input_date').value;
 
-            if (!originVal || !destinationVal) {
-                alert("請填寫出發地與目的地");
+            if (!search_origin || !search_dest) {
+                alert("請填寫機場代碼");
                 return;
             }
 
-            // 2. UI 狀態切換
-            document.getElementById('history-section').classList.add('hidden');
+            // 切換 UI
             document.getElementById('results-section').classList.add('hidden');
             const loader = document.getElementById('loading-state');
-            loader.classList.remove('hidden');
-            loader.classList.add('flex');
+            loader.classList.replace('hidden', 'flex');
 
             try {
-                // *** 重要：請將此處替換為你的 GAS URL ***
-                const GAS_URL = 'https://script.google.com/macros/s/AKfycbyOc_d682TOLRZAstww3knZ9YhKX_H4UOCni4Bga-ssjNPIVvtAoRG70GQ7PWE4QeWz9Q/exec'; 
+                // *** 這裡請填入你的 GAS Web App URL ***
+                const GAS_URL = 'https://script.google.com/macros/s/AKfycbyOc_d682TOLRZAstww3knZ9YhKX_H4UOCni4Bga-ssjNPIVvtAoRG70GQ7PWE4QeWz9Q/exec';
 
                 const response = await fetch(GAS_URL, {
                     method: 'POST',
                     body: JSON.stringify({
-                        origin: originVal,
-                        dest: destinationVal,
-                        dateOut: dateVal
+                        origin: search_origin,
+                        dest: search_dest,
+                        dateOut: search_date
                     })
                 });
 
-                if (!response.ok) throw new Error("伺服器連線失敗");
-                
-                const result = await response.json();
+                const data = await response.json();
 
-                if (result.status === "success") {
-                    loader.classList.add('hidden');
-                    // 渲染結果並存入歷史
-                    renderFlights(result.flights);
-                    saveToHistory(originVal, destinationVal); 
+                if (data.status === "success") {
+                    renderFlightCards(data.flights);
+                    saveCurrentSearchToLocal(); // 儲存紀錄
                 } else {
-                    throw new Error(result.message || "搜尋無結果");
+                    alert("搜尋無結果: " + (data.message || ""));
                 }
-
-            } catch (error) {
-                console.error("Search Fail:", error);
-                alert("搜尋失敗：" + error.message);
-                loader.classList.add('hidden');
-                document.getElementById('history-section').classList.remove('hidden');
+            } catch (err) {
+                alert("連線失敗: " + err.message);
+            } finally {
+                loader.classList.replace('flex', 'hidden');
             }
         }
 
-        // 渲染航班卡片
-        function renderFlights(flights) {
+        function renderFlightCards(flights) {
             const container = document.getElementById('flight-results');
             container.innerHTML = '';
             document.getElementById('results-section').classList.remove('hidden');
 
-            if (!flights || flights.length === 0) {
-                container.innerHTML = '<p class="text-center text-slate-400 py-10 text-xs font-medium">找不到對應航班，請調整日期或地點</p>';
-                return;
-            }
-
             flights.forEach(f => {
-                const card = `
-                    <div class="bg-white p-5 rounded-[28px] shadow-sm border border-slate-100 transition active:scale-95">
-                        <div class="flex justify-between items-start mb-4">
+                container.innerHTML += `
+                    <div class="bg-white p-5 rounded-[28px] shadow-sm border border-slate-100">
+                        <div class="flex justify-between mb-4">
                             <div>
-                                <span class="text-[10px] font-bold text-slate-400">AI 評分 ${f.score || 8}/10</span>
+                                <span class="text-[10px] font-bold text-slate-400 uppercase">AI Score ${f.score || 8}</span>
                                 <h3 class="text-lg font-black text-slate-900">${f.airline}</h3>
                             </div>
-                            <span class="bg-blue-50 text-blue-600 text-[10px] px-3 py-1 rounded-full font-black">${f.tag || '最佳選擇'}</span>
+                            <span class="bg-blue-50 text-blue-600 text-[10px] px-3 py-1 rounded-full font-bold">${f.tag || '推薦'}</span>
                         </div>
                         <div class="flex justify-between items-end">
-                            <div>
-                                <p class="text-xl font-bold text-slate-900 leading-none">${f.time || 'N/A'}</p>
-                                <p class="text-[10px] font-bold text-slate-400 mt-2">${f.duration || ''}</p>
-                            </div>
-                            <div class="text-right">
-                                <p class="text-2xl font-black text-slate-900 tracking-tighter">${f.price}</p>
-                            </div>
+                            <p class="text-xl font-bold">${f.time}</p>
+                            <p class="text-2xl font-black text-slate-900">${f.price}</p>
                         </div>
-                    </div>
-                `;
-                container.innerHTML += card;
+                    </div>`;
             });
         }
 
-        // 儲存至 localStorage
-        function saveToHistory(o, d) {
-            // 這裡使用了傳進來的參數 o 和 d，避免使用外部未定義變數
-            let history = JSON.parse(localStorage.getItem('skyai_history') || '[]');
-            const route = o + " - " + d;
-            
-            // 避免重複
-            history = history.filter(item => item.route !== route);
-            
-            // 加入新項目
-            history.unshift({
-                route: route,
-                time: new Date().toLocaleDateString()
-            });
+        // 【終極解決方案】不傳遞任何參數，直接從 DOM 抓資料儲存
+        function saveCurrentSearchToLocal() {
+            const o = document.getElementById('ui_input_origin').value.toUpperCase();
+            const d = document.getElementById('ui_input_dest').value.toUpperCase();
+            if(!o || !d) return;
 
-            // 限制 5 筆
-            if(history.length > 5) history.pop();
+            const routeStr = o + " - " + d;
+            let historyData = JSON.parse(localStorage.getItem('skyai_v2_history') || '[]');
             
-            localStorage.setItem('skyai_history', JSON.stringify(history));
-            loadHistory();
+            historyData = historyData.filter(i => i.route !== routeStr);
+            historyData.unshift({ route: routeStr, date: new Date().toLocaleDateString() });
+            
+            if(historyData.length > 5) historyData.pop();
+            localStorage.setItem('skyai_v2_history', JSON.stringify(historyData));
+            refreshHistoryUI();
         }
 
-        // 讀取歷史紀錄
-        function loadHistory() {
-            const history = JSON.parse(localStorage.getItem('skyai_history') || '[]');
-            const container = document.getElementById('history-list');
+        function refreshHistoryUI() {
+            const historyData = JSON.parse(localStorage.getItem('skyai_v2_history') || '[]');
+            const list = document.getElementById('history-list');
             
-            if (history.length === 0) {
-                container.innerHTML = '<p class="text-xs text-slate-400 px-2">尚未有搜尋紀錄</p>';
+            if (historyData.length === 0) {
+                list.innerHTML = '<p class="text-xs text-slate-400 px-2 italic">尚無紀錄</p>';
                 return;
             }
 
-            container.innerHTML = history.map(h => `
-                <div class="bg-white border border-slate-100 rounded-2xl p-4 flex-shrink-0 w-32 shadow-sm active:bg-slate-50 transition" onclick="quickSearch('${h.route}')">
+            list.innerHTML = historyData.map(h => `
+                <div class="bg-white border border-slate-100 rounded-2xl p-4 flex-shrink-0 w-32 shadow-sm" 
+                     onclick="fillAndSearch('${h.route}')">
                     <p class="text-xs font-black text-slate-900">${h.route}</p>
-                    <p class="text-[9px] text-slate-400 mt-2">快速搜尋</p>
+                    <p class="text-[9px] text-slate-400 mt-2 font-bold uppercase">點擊搜尋</p>
                 </div>
             `).join('');
         }
 
-        // 快速搜尋
-        function quickSearch(route) {
-            const parts = route.split(' - ');
-            if(parts.length === 2) {
-                document.getElementById('origin').value = parts[0].trim();
-                document.getElementById('destination').value = parts[1].trim();
-                startSearch();
-            }
+        function fillAndSearch(route) {
+            const p = route.split(' - ');
+            document.getElementById('ui_input_origin').value = p[0];
+            document.getElementById('ui_input_dest').value = p[1];
+            executeSearch();
         }
 
-        // 清空歷史
-        function clearHistory() {
-            if(confirm('確定要清空搜尋歷史嗎？')) {
-                localStorage.removeItem('skyai_history');
-                loadHistory();
-            }
+        function clearLocalStorageHistory() {
+            localStorage.removeItem('skyai_v2_history');
+            refreshHistoryUI();
         }
     </script>
 </body>
