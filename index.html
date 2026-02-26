@@ -3,184 +3,141 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SkyAI - 智能機票獵人</title>
+    <title>SkyAI v3</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
+        body { font-family: sans-serif; -webkit-tap-highlight-color: transparent; }
+        .no-sb::-webkit-scrollbar { display: none; }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen pb-20">
 
-    <header class="p-6">
-        <h1 class="text-2xl font-black text-slate-900 tracking-tight">SkyAI</h1>
-        <p class="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Flight Hunter Pro</p>
-    </header>
+    <header class="p-6"><h1 class="text-2xl font-black">SkyAI Hunter</h1></header>
 
     <main class="p-6">
-        <div class="bg-white rounded-[32px] p-6 shadow-xl border border-slate-100 mb-6">
+        <div class="bg-white rounded-[32px] p-6 shadow-xl border mb-6">
             <div class="space-y-4">
                 <div class="grid grid-cols-2 gap-4">
-                    <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-slate-400 ml-2 uppercase">From</label>
-                        <input type="text" id="ui_input_origin" placeholder="TPE" class="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold uppercase focus:ring-2 focus:ring-blue-500">
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-400 ml-2">FROM</label>
+                        <input type="text" id="VAL_FROM" placeholder="TPE" class="w-full bg-slate-50 rounded-2xl p-4 text-sm font-bold uppercase">
                     </div>
-                    <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-slate-400 ml-2 uppercase">To</label>
-                        <input type="text" id="ui_input_dest" placeholder="NRT" class="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold uppercase focus:ring-2 focus:ring-blue-500">
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-400 ml-2">TO</label>
+                        <input type="text" id="VAL_TO" placeholder="NRT" class="w-full bg-slate-50 rounded-2xl p-4 text-sm font-bold uppercase">
                     </div>
                 </div>
-                <div class="space-y-1">
-                    <label class="text-[10px] font-bold text-slate-400 ml-2 uppercase">Date</label>
-                    <input type="date" id="ui_input_date" class="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold">
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 ml-2">DATE</label>
+                    <input type="date" id="VAL_DATE" class="w-full bg-slate-50 rounded-2xl p-4 text-sm font-bold">
                 </div>
-                <button onclick="executeSearch()" class="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-all mt-2">
-                    搜尋 AI 最佳航班
-                </button>
+                <button onclick="GO_SEARCH()" class="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl active:scale-95 transition-all">搜尋航班</button>
             </div>
         </div>
 
-        <div id="loading-state" class="hidden flex-col items-center py-12">
-            <div class="w-10 h-10 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
-            <p class="text-xs font-medium text-slate-400">AI 分析搜尋中...</p>
+        <div id="LOADER" class="hidden flex-col items-center py-10">
+            <div class="w-8 h-8 border-4 border-t-blue-600 rounded-full animate-spin mb-2"></div>
+            <p class="text-xs text-slate-400">AI 搜尋中...</p>
         </div>
 
-        <section id="results-section" class="hidden mt-8">
-            <h2 class="text-sm font-black text-slate-900 mb-4 px-2 uppercase">AI 分析結果</h2>
-            <div id="flight-results" class="space-y-4"></div>
-        </section>
+        <div id="BOX_RESULTS" class="hidden space-y-4"></div>
 
-        <section id="history-section" class="mt-8">
-            <div class="flex justify-between items-center mb-4 px-2">
-                <h2 class="text-sm font-black text-slate-900 uppercase">最近搜尋</h2>
-                <button onclick="clearLocalStorageHistory()" class="text-[10px] font-bold text-slate-400">清空</button>
-            </div>
-            <div id="history-list" class="flex gap-4 overflow-x-auto no-scrollbar pb-4"></div>
+        <section class="mt-8">
+            <h2 class="text-sm font-black mb-4 px-2 uppercase">最近搜尋</h2>
+            <div id="BOX_HISTORY" class="flex gap-4 overflow-x-auto no-sb pb-4"></div>
         </section>
     </main>
 
     <script>
-        // 初始化日期
+        // 1. 初始化
         window.onload = function() {
-            const dateInput = document.getElementById('ui_input_date');
-            if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
-            refreshHistoryUI();
+            document.getElementById('VAL_DATE').value = new Date().toISOString().split('T')[0];
+            UPDATE_HISTORY_UI();
         };
 
-        async function executeSearch() {
-            // 【關鍵修正】使用完全獨立的變數名，避免任何同名衝突
-            const search_origin = document.getElementById('ui_input_origin').value.toUpperCase();
-            const search_dest = document.getElementById('ui_input_dest').value.toUpperCase();
-            const search_date = document.getElementById('ui_input_date').value;
+        // 2. 搜尋主邏輯
+        async function GO_SEARCH() {
+            // 直接獲取，不使用任何名為 origin 的變數
+            const f = document.getElementById('VAL_FROM').value.toUpperCase();
+            const t = document.getElementById('VAL_TO').value.toUpperCase();
+            const d = document.getElementById('VAL_DATE').value;
 
-            if (!search_origin || !search_dest) {
-                alert("請填寫機場代碼");
-                return;
-            }
+            if (!f || !t) { alert("請輸入地點"); return; }
 
-            // 切換 UI
-            document.getElementById('results-section').classList.add('hidden');
-            const loader = document.getElementById('loading-state');
-            loader.classList.replace('hidden', 'flex');
+            document.getElementById('BOX_RESULTS').classList.add('hidden');
+            document.getElementById('LOADER').classList.replace('hidden', 'flex');
 
             try {
-                // *** 這裡請填入你的 GAS Web App URL ***
-                const GAS_URL = 'https://script.google.com/macros/s/AKfycbyOc_d682TOLRZAstww3knZ9YhKX_H4UOCni4Bga-ssjNPIVvtAoRG70GQ7PWE4QeWz9Q/exec';
+                // *** 請替換你的 GAS 網址 ***
+                const URL = 'https://script.google.com/macros/s/AKfycbyOc_d682TOLRZAstww3knZ9YhKX_H4UOCni4Bga-ssjNPIVvtAoRG70GQ7PWE4QeWz9Q/exec';
 
-                const response = await fetch(GAS_URL, {
+                const res = await fetch(URL, {
                     method: 'POST',
-                    body: JSON.stringify({
-                        origin: search_origin,
-                        dest: search_dest,
-                        dateOut: search_date
-                    })
+                    body: JSON.stringify({ origin: f, dest: t, dateOut: d })
                 });
 
-                const data = await response.json();
+                const json = await res.json();
 
-                if (data.status === "success") {
-                    renderFlightCards(data.flights);
-                    saveCurrentSearchToLocal(); // 儲存紀錄
+                if (json.status === "success") {
+                    RENDER_LIST(json.flights);
+                    SAVE_RECORD(f, t); 
                 } else {
-                    alert("搜尋無結果: " + (data.message || ""));
+                    alert("搜尋失敗：" + json.message);
                 }
-            } catch (err) {
-                alert("連線失敗: " + err.message);
+            } catch (e) {
+                alert("網路錯誤或 GAS 未回應");
             } finally {
-                loader.classList.replace('flex', 'hidden');
+                document.getElementById('LOADER').classList.replace('flex', 'hidden');
             }
         }
 
-        function renderFlightCards(flights) {
-            const container = document.getElementById('flight-results');
-            container.innerHTML = '';
-            document.getElementById('results-section').classList.remove('hidden');
-
-            flights.forEach(f => {
-                container.innerHTML += `
-                    <div class="bg-white p-5 rounded-[28px] shadow-sm border border-slate-100">
+        function RENDER_LIST(list) {
+            const b = document.getElementById('BOX_RESULTS');
+            b.innerHTML = '<h2 class="text-sm font-black mb-4 px-2">AI 分析結果</h2>';
+            b.classList.remove('hidden');
+            list.forEach(item => {
+                b.innerHTML += `
+                    <div class="bg-white p-5 rounded-[28px] border shadow-sm">
                         <div class="flex justify-between mb-4">
-                            <div>
-                                <span class="text-[10px] font-bold text-slate-400 uppercase">AI Score ${f.score || 8}</span>
-                                <h3 class="text-lg font-black text-slate-900">${f.airline}</h3>
-                            </div>
-                            <span class="bg-blue-50 text-blue-600 text-[10px] px-3 py-1 rounded-full font-bold">${f.tag || '推薦'}</span>
+                            <h3 class="font-black">${item.airline}</h3>
+                            <span class="text-blue-600 text-[10px] font-bold">${item.tag || '推薦'}</span>
                         </div>
                         <div class="flex justify-between items-end">
-                            <p class="text-xl font-bold">${f.time}</p>
-                            <p class="text-2xl font-black text-slate-900">${f.price}</p>
+                            <p class="text-xl font-bold">${item.time}</p>
+                            <p class="text-2xl font-black">${item.price}</p>
                         </div>
                     </div>`;
             });
         }
 
-        // 【終極解決方案】不傳遞任何參數，直接從 DOM 抓資料儲存
-        function saveCurrentSearchToLocal() {
-            const o = document.getElementById('ui_input_origin').value.toUpperCase();
-            const d = document.getElementById('ui_input_dest').value.toUpperCase();
-            if(!o || !d) return;
-
-            const routeStr = o + " - " + d;
-            let historyData = JSON.parse(localStorage.getItem('skyai_v2_history') || '[]');
-            
-            historyData = historyData.filter(i => i.route !== routeStr);
-            historyData.unshift({ route: routeStr, date: new Date().toLocaleDateString() });
-            
-            if(historyData.length > 5) historyData.pop();
-            localStorage.setItem('skyai_v2_history', JSON.stringify(historyData));
-            refreshHistoryUI();
+        // 3. 儲存邏輯 (徹底移除對外源變數的依賴)
+        function SAVE_RECORD(fromText, toText) {
+            const route = fromText + " - " + toText;
+            let h = JSON.parse(localStorage.getItem('skyai_v3_cache') || '[]');
+            h = h.filter(i => i.r !== route);
+            h.unshift({ r: route });
+            if(h.length > 5) h.pop();
+            localStorage.setItem('skyai_v3_cache', JSON.stringify(h));
+            UPDATE_HISTORY_UI();
         }
 
-        function refreshHistoryUI() {
-            const historyData = JSON.parse(localStorage.getItem('skyai_v2_history') || '[]');
-            const list = document.getElementById('history-list');
-            
-            if (historyData.length === 0) {
-                list.innerHTML = '<p class="text-xs text-slate-400 px-2 italic">尚無紀錄</p>';
-                return;
-            }
-
-            list.innerHTML = historyData.map(h => `
-                <div class="bg-white border border-slate-100 rounded-2xl p-4 flex-shrink-0 w-32 shadow-sm" 
-                     onclick="fillAndSearch('${h.route}')">
-                    <p class="text-xs font-black text-slate-900">${h.route}</p>
-                    <p class="text-[9px] text-slate-400 mt-2 font-bold uppercase">點擊搜尋</p>
+        function UPDATE_HISTORY_UI() {
+            const h = JSON.parse(localStorage.getItem('skyai_v3_cache') || '[]');
+            const l = document.getElementById('BOX_HISTORY');
+            if (h.length === 0) { l.innerHTML = '<p class="text-xs text-slate-400">無紀錄</p>'; return; }
+            l.innerHTML = h.map(i => `
+                <div class="bg-white border rounded-2xl p-4 flex-shrink-0 w-32 shadow-sm" onclick="QUICK_GO('${i.r}')">
+                    <p class="text-xs font-black">${i.r}</p>
                 </div>
             `).join('');
         }
 
-        function fillAndSearch(route) {
-            const p = route.split(' - ');
-            document.getElementById('ui_input_origin').value = p[0];
-            document.getElementById('ui_input_dest').value = p[1];
-            executeSearch();
-        }
-
-        function clearLocalStorageHistory() {
-            localStorage.removeItem('skyai_v2_history');
-            refreshHistoryUI();
+        function QUICK_GO(r) {
+            const p = r.split(' - ');
+            document.getElementById('VAL_FROM').value = p[0];
+            document.getElementById('VAL_TO').value = p[1];
+            GO_SEARCH();
         }
     </script>
 </body>
